@@ -1,0 +1,13 @@
+# Local
+.DS_Store
+*.local
+*.log*
+__pycache__
+
+# Dist
+
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
