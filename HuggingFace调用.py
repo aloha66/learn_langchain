@@ -1,8 +1,3 @@
-# 导入HuggingFace API Token
-import os
-
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
-
 # 导入必要的库
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
