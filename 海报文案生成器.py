@@ -3,8 +3,9 @@ import requests
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from langchain.tools import BaseTool
-from langchain import OpenAI
+from langchain_openai import ChatOpenAI
 from langchain.agents import initialize_agent, AgentType
+from util import base_url
 
 # ---- Part I 初始化图像字幕生成模型
 # 指定要使用的工具模型（HuggingFace中的image-caption模型）
@@ -38,7 +39,7 @@ class ImageCapTool(BaseTool):
 
 # ---- PartIII 初始化并运行LangChain智能代理
 # 设置OpenAI的API密钥并初始化大语言模型（OpenAI的Text模型）
-llm = OpenAI(temperature=0.2,base_url="https://api.chatanywhere.tech/v1")
+llm = ChatOpenAI(temperature=0.2, base_url=base_url)
 
 # 使用工具初始化智能代理并运行它
 tools = [ImageCapTool()]
