@@ -1,7 +1,13 @@
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationBufferMemory
-from util import base_url
+import os
+import sys
+
+# 将项目的根目录添加到 Python 解释器的路径中
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from util.util import base_url
 
 # 初始化大语言模型
 llm = ChatOpenAI(temperature=0.5, base_url=base_url)

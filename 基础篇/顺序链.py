@@ -1,7 +1,13 @@
 from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain, SequentialChain
 from langchain.prompts import PromptTemplate
-from util import base_url
+import os
+import sys
+
+# 将项目的根目录添加到 Python 解释器的路径中
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from util.util import base_url
 
 # 这是第一个LLMChain，用于生成鲜花的介绍，输入为花的名称和种类
 llm = ChatOpenAI(base_url=base_url, temperature=0.7)

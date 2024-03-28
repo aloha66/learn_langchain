@@ -2,7 +2,13 @@
 # 第二个尴尬点是 他知道我这是一个网站但获取不了数据
 from langchain_community.agent_toolkits import PlayWrightBrowserToolkit
 from langchain_community.tools.playwright.utils import create_async_playwright_browser
-from util import base_url
+import os
+import sys
+
+# 将项目的根目录添加到 Python 解释器的路径中
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from util.util import base_url
 
 async_browser = create_async_playwright_browser()
 toolkit = PlayWrightBrowserToolkit.from_browser(async_browser=async_browser)

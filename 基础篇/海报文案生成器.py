@@ -5,7 +5,13 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 from langchain.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langchain.agents import initialize_agent, AgentType
-from util import base_url
+import os
+import sys
+
+# 将项目的根目录添加到 Python 解释器的路径中
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from util.util import base_url
 
 # ---- Part I 初始化图像字幕生成模型
 # 指定要使用的工具模型（HuggingFace中的image-caption模型）
