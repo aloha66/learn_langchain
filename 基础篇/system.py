@@ -5,6 +5,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders import TextLoader
 
+# TODO 路径修改
 # 加载Documents
 base_dir = ".\OneFlower"  # 文档的存放目录
 documents = []
