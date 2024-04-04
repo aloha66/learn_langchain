@@ -1,4 +1,4 @@
-# TODO 这个答案不符合预期
+# TODO 这个答案不符合预期，答案不稳定，多试几次有对了
 from langchain_community.utilities import SQLDatabase
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_sql_agent
