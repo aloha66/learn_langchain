@@ -1,10 +1,19 @@
-# 目前这种很容易就超token了
+# TODO 感觉还是会出现答非所问
 # 增加一个方案评价的角色，
 # 对每一轮对结果进行挑战和质疑，
 # 帮助AI进一步进行优化，这样方案是不是就可以用于实操了
+from loguru import logger
+
+from langchain.callbacks import FileCallbackHandler
+
+logfile = "output.log"
+
+logger.add(logfile, colorize=True, enqueue=True)
+handler = FileCallbackHandler(logfile)
+
 # 1. 导入所需的库
 from typing import List
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
@@ -16,14 +25,27 @@ from langchain.schema import (
     BaseMessage,
 )
 
+import os
+
+import sys
+
+# 将项目的根目录添加到 Python 解释器的路径中
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from util.util import base_url
+
+# 不删除AzureChatOpenAI会报错
+del os.environ["OPENAI_API_BASE"]
+
 
 # 2. 定义CAMELAgent类，用于管理与语言模型的交互
 # 它包含了初始化消息、更新消息和与模型进行交互的方法
 class CAMELAgent:
+
     def __init__(
         self,
         system_message: SystemMessage,
-        model: ChatOpenAI,
+        model: AzureChatOpenAI,
     ) -> None:
         self.system_message = system_message
         self.model = model
@@ -77,7 +99,15 @@ task_specifier_prompt = """这是一个{assistant_role_name}和{scheme_review_ro
 task_specifier_template = HumanMessagePromptTemplate.from_template(
     template=task_specifier_prompt
 )
-task_specify_agent = CAMELAgent(task_specifier_sys_msg, ChatOpenAI(temperature=1.0))
+task_specify_agent = CAMELAgent(
+    task_specifier_sys_msg,
+    AzureChatOpenAI(
+        azure_deployment="gpt-35-turbo",
+        api_version="2024-02-15-preview",
+        max_retries=0,
+        timeout=60,
+    ),
+)
 task_specifier_msg = task_specifier_template.format_messages(
     assistant_role_name=assistant_role_name,
     user_role_name=user_role_name,
@@ -86,7 +116,6 @@ task_specifier_msg = task_specifier_template.format_messages(
     word_limit=word_limit,
 )[0]
 specified_task_msg = task_specify_agent.step(task_specifier_msg)
-print(f"Specified task: {specified_task_msg.content}")
 specified_task = specified_task_msg.content
 
 
@@ -206,9 +235,30 @@ assistant_sys_msg, user_sys_msg, scheme_review_sys_msg = get_sys_msgs(
 )
 
 # 7. 创建助手和用户的CAMELAgent实例
-assistant_agent = CAMELAgent(assistant_sys_msg, ChatOpenAI(temperature=0.2))
-user_agent = CAMELAgent(user_sys_msg, ChatOpenAI(temperature=0.2))
-scheme_review_agent = CAMELAgent(scheme_review_sys_msg, ChatOpenAI(temperature=0.2))
+assistant_agent = CAMELAgent(
+    assistant_sys_msg,
+    ChatOpenAI(
+        base_url=base_url,
+    ),
+)
+user_agent = CAMELAgent(
+    user_sys_msg,
+    AzureChatOpenAI(
+        azure_deployment="gpt-35-turbo",
+        api_version="2024-02-15-preview",
+        max_retries=0,
+        timeout=60,
+    ),
+)
+scheme_review_agent = CAMELAgent(
+    scheme_review_sys_msg,
+    AzureChatOpenAI(
+        azure_deployment="gpt-35-turbo",
+        api_version="2024-02-15-preview",
+        max_retries=0,
+        timeout=60,
+    ),
+)
 
 # 重置agent
 assistant_agent.reset()
@@ -223,31 +273,33 @@ assistant_msg = HumanMessage(
 user_msg = HumanMessage(content=f"{assistant_sys_msg.content}")
 user_msg = assistant_agent.step(user_msg)
 
-print(f"Original task prompt:\n{task}\n")
-print(f"Specified task prompt:\n{specified_task}\n")
+logger.info(f"Original task prompt:\n{task}\n")
+logger.info(f"Specified task prompt:\n{specified_task}\n")
 
 
 # 8. 模拟对话交互，直到达到对话轮次上限或任务完成
-chat_turn_limit, n = 30, 0
+chat_turn_limit, n = 18, 0
 while n < chat_turn_limit:
     n += 1
     user_ai_msg = user_agent.step(assistant_msg)
     user_msg = HumanMessage(content=user_ai_msg.content)
-    print(f"AI User ({user_role_name}):\n\n{user_msg.content}\n\n")
+    logger.info(f"AI User ({user_role_name}):\n\n{user_msg.content}\n\n")
 
     assistant_ai_msg = assistant_agent.step(user_msg)
     assistant_msg = HumanMessage(content=assistant_ai_msg.content)
-    print(
+    logger.info(
         f"AI Assistant 修改前的回答 ({assistant_role_name}):\n\n{assistant_msg.content}\n\n"
     )
 
-    scheme_review_ai_msg = assistant_agent.step(assistant_ai_msg)
+    scheme_review_ai_msg = scheme_review_agent.step(assistant_ai_msg)
     scheme_review_msg = HumanMessage(content=scheme_review_ai_msg.content)
-    print(f"AI Reviewr ({scheme_review_role_name}):\n\n{scheme_review_msg.content}\n\n")
+    logger.info(
+        f"AI Reviewr ({scheme_review_role_name}):\n\n{scheme_review_msg.content}\n\n"
+    )
 
-    assistant_ai_msg = assistant_agent.step(scheme_review_ai_msg)
+    assistant_ai_msg = assistant_agent.step(scheme_review_msg)
     assistant_msg = HumanMessage(content=assistant_ai_msg.content)
-    print(
+    logger.info(
         f"AI Assistant 修改后的回答 ({assistant_role_name}):\n\n{assistant_msg.content}\n\n"
     )
     if "<CAMEL_TASK_DONE>" in user_msg.content:
